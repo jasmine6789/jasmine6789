@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/header.svg" width="380" alt="pixel axolotl" />
+<img src="cinnamoroll-hi-gesture-usagif.gif" width="380" alt="cinamonroll" />
 
 <a href="https://git.io/typing-svg">
   <img src="https://readme-typing-svg.demolab.com?font=Fredoka&weight=600&size=44&duration=3500&pause=1200&color=E6EDF3&center=true&vCenter=true&width=820&height=80&lines=Greetings%2C+wanderer!+I'm+Jasmine!;Software+Engineer+%E2%80%94+AI+Systems;LLMs+%C2%B7+Agents+%C2%B7+ML+Systems" alt="Greetings, wanderer! I'm Jasmine!" />
