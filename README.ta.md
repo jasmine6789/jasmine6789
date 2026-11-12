@@ -54,7 +54,7 @@
 </p>
 <img src="profile-summary-card-output/omni/0-profile-details.svg" width="97.5%" alt="profile details" />
 
-<img src="https://github-readme-activity-graph.vercel.app/graph?username=jasmine6789&bg_color=191622&color=e8df7a&line=ff79c6&point=e8df7a&title_color=ff79c6&area=true&area_color=e8df7a&hide_border=true" width="97.5%" alt="contribution activity graph" />
+<img src="assets/activity.svg" width="97.5%" alt="contribution activity graph" />
 
 <!-- LeetCode heatmap: replace YOUR_LEETCODE_USERNAME and remove the comment markers to show it
 <img src="https://leetcard.jacoblin.cool/YOUR_LEETCODE_USERNAME?theme=unicorn&ext=heatmap" width="97.5%" alt="LeetCode stats" />
