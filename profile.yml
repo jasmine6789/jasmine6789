@@ -162,7 +162,7 @@ jobs:
                   gists {{ totalCount }}
                   pullRequests {{ totalCount }}
                   repositoriesContributedTo(contributionTypes:[COMMIT, PULL_REQUEST, ISSUE, PULL_REQUEST_REVIEW]) {{ totalCount }}
-                  contributionsCollection {{ contributionCalendar {{ totalContributions }} }}
+                  contributionsCollection {{ contributionCalendar {{ totalContributions weeks {{ contributionDays {{ date contributionCount }} }} }} }}
                   issues {{ totalCount }}
                   pinnedItems(first:6, types:REPOSITORY) {{ nodes {{ {REPO_FIELDS} }} }}
                 }}
@@ -222,6 +222,9 @@ jobs:
                   "gists": base["gists"]["totalCount"],
                   "contributed_to": base["repositoriesContributedTo"]["totalCount"],
                   "year_contrib": base["contributionsCollection"]["contributionCalendar"]["totalContributions"],
+                  "days": [(d["date"], d["contributionCount"])
+                           for w in base["contributionsCollection"]["contributionCalendar"]["weeks"]
+                           for d in w["contributionDays"]][-31:],
                   "uptime": (now - created).days,
                   "pinned": [n for n in base["pinnedItems"]["nodes"] if n],
               }
@@ -234,6 +237,7 @@ jobs:
                   "login": "your-username", "name": "Your Name", "avatar": None,
                   "followers": 282, "repos": 33, "stars": 1590, "forks": 383, "commits": 12638,
                   "prs": 22, "issues": 0, "gists": 1, "uptime": 1369, "contributed_to": 7, "year_contrib": 290,
+                  "days": [(f"2026-10-{i+1:02d}" if i < 31 else "", c) for i, c in enumerate([0,2,5,1,0,0,3,8,12,4,0,1,0,0,6,9,3,2,0,0,0,1,4,7,2,0,0,5,3,1,2])],
                   "pinned": [repo("rag-pipeline", "Retrieval-augmented generation service with hybrid search, reranking and eval harness.", "Python", "#3572A5", 214, 31),
                              repo("agent-runtime", "Lightweight tool-calling agent runtime with tracing.", "TypeScript", "#3178c6", 98, 12)],
               }
@@ -481,6 +485,53 @@ jobs:
           </svg>'''
 
 
+          # ── activity graph (last 31 days) ─────────────────────────────────────────
+          def activity_graph(d):
+              W, H, L, R, T, B = 1000, 320, 70, 30, 70, 50
+              days = d["days"] or [("", 0)]
+              counts = [c for _, c in days]
+              top = max(4, max(counts))
+              step = max(1, -(-top // 4))
+              top = step * 4
+              n = len(days)
+              X = lambda i: L + i * (W - L - R) / max(1, n - 1)
+              Y = lambda v: H - B - v * (H - T - B) / top
+              pts = [(X(i), Y(c)) for i, c in enumerate(counts)]
+              # smooth curve (Catmull-Rom -> cubic Bezier)
+              path = f"M{pts[0][0]:.1f},{pts[0][1]:.1f}"
+              for i in range(n - 1):
+                  p0, p1, p2 = pts[max(i-1, 0)], pts[i], pts[i+1]
+                  p3 = pts[min(i+2, n-1)]
+                  c1 = (p1[0] + (p2[0]-p0[0])/6, p1[1] + (p2[1]-p0[1])/6)
+                  c2 = (p2[0] - (p3[0]-p1[0])/6, p2[1] - (p3[1]-p1[1])/6)
+                  c1 = (c1[0], min(c1[1], H - B)); c2 = (c2[0], min(c2[1], H - B))
+                  path += f" C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:.1f},{p2[1]:.1f}"
+              area = path + f" L{pts[-1][0]:.1f},{H-B} L{pts[0][0]:.1f},{H-B} Z"
+              grid = "".join(f'<line x1="{L}" x2="{W-R}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="#ffffff" stroke-opacity=".08"/>'
+                             f'<text x="{L-12}" y="{Y(v)+4:.1f}" text-anchor="end" class="ax">{v}</text>'
+                             for v in range(0, top + 1, step))
+              xl = "".join(f'<text x="{X(i):.1f}" y="{H-B+22}" text-anchor="middle" class="ax">{int(dt_[8:10]) if dt_ else ""}</text>'
+                           for i, (dt_, _) in enumerate(days) if i % 2 == 0)
+              dots = "".join(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" fill="#e8df7a"/>' for x, y in pts)
+              return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+          <style>
+           .ax {{ fill:#c9c9d1; font-size:12px }}
+           .line {{ stroke-dasharray:4000; stroke-dashoffset:4000; animation: draw 2s ease-out forwards }}
+           .fill {{ opacity:0; animation: fade 1s ease-out 1.2s forwards }}
+           @keyframes draw {{ to {{ stroke-dashoffset:0 }} }}
+           @keyframes fade {{ to {{ opacity:1 }} }}
+          </style>
+          <rect width="{W}" height="{H}" rx="8" fill="#191622"/>
+          <text x="{W/2}" y="38" text-anchor="middle" fill="#ff79c6" font-size="20" font-weight="600">{esc(d["name"])}\u2019s Contribution Graph</text>
+          {grid}{xl}
+          <text x="{W/2}" y="{H-8}" text-anchor="middle" class="ax">Days</text>
+          <text x="20" y="{(T+H-B)/2}" text-anchor="middle" class="ax" transform="rotate(-90 20 {(T+H-B)/2})">Contributions</text>
+          <path class="fill" d="{area}" fill="#e8df7a" fill-opacity=".18"/>
+          <path class="line" d="{path}" fill="none" stroke="#ff79c6" stroke-width="2.5"/>
+          <g class="fill">{dots}</g>
+          </svg>'''
+
+
           # ── repo cards ─────────────────────────────────────────────────────────────
           def repo_card(r):
               W, H = 400, 130
@@ -536,6 +587,7 @@ jobs:
               (ASSETS / "terminal.svg").write_text(terminal_card(d))
               (ASSETS / "stats.svg").write_text(stats_card(d))
               (ASSETS / "divider.svg").write_text(divider())
+              (ASSETS / "activity.svg").write_text(activity_graph(d))
               if demo:
                   for r in d["pinned"]:
                       (REPOS_DIR / (r["nameWithOwner"].replace("/", "__") + ".svg")).write_text(repo_card(r))
